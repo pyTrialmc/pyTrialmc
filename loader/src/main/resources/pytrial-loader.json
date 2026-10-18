@@ -1,0 +1,22 @@
+{
+  "name": "pyTrial Loader",
+  "version": "0.1.0-SNAPSHOT",
+  "schemaVersion": 1,
+  "description": "Loader for writing Minecraft Java Edition mods in Python",
+  "agent": {
+    "premain": "net.pytrial.agent.PyTrialAgent",
+    "arguments": "--game-dir=<.minecraft>,--mods=<mods dir>,--version=<mc version>,--main-class=<client main class>"
+  },
+  "layout": {
+    "installDir": "pytrial",
+    "modsDir": "pytrial/mods",
+    "configDir": "pytrial/config",
+    "cacheDir": "pytrial/cache",
+    "nativesDir": "pytrial/natives"
+  },
+  "pythonEngine": {
+    "spi": "net.pytrial.engine.PythonEngine",
+    "implemented": false,
+    "note": "The Python runtime is intentionally left unimplemented, see docs/python-engine.md"
+  }
+}

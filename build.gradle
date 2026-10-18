@@ -1,0 +1,53 @@
+plugins {
+    id 'base'
+}
+
+allprojects {
+    group = 'net.pytrial'
+    version = project.findProperty('pytrial_version') ?: '0.1.0-SNAPSHOT'
+}
+
+def javaVersion = (project.findProperty('java_version') ?: '21') as int
+
+subprojects {
+    apply plugin: 'java-library'
+
+    java {
+        sourceCompatibility = JavaVersion.toVersion(javaVersion)
+        targetCompatibility = JavaVersion.toVersion(javaVersion)
+    }
+
+    repositories {
+        maven { url = uri('https://maven.aliyun.com/repository/public') }
+        maven { url = uri('https://maven.aliyun.com/repository/central') }
+        maven { url = uri('https://libraries.minecraft.net') }
+        mavenCentral()
+    }
+
+    tasks.withType(JavaCompile).configureEach {
+        options.encoding = 'UTF-8'
+        options.release = javaVersion
+    }
+}
+
+tasks.named('wrapper') {
+    distributionUrl = "https://mirrors.cloud.tencent.com/gradle/gradle-${gradle.gradleVersion}-bin.zip"
+}
+
+tasks.register('dist') {
+    group = 'build'
+    description = 'Collect runnable bootstrap / loader jars into build/dist'
+    dependsOn ':loader:loaderJar', ':bootstrap:bootstrapJar', ':bootstrap:clientInstallerJar'
+
+    doLast {
+        def distDir = layout.buildDirectory.dir('dist').get().asFile
+        distDir.mkdirs()
+        copy {
+            from project(':loader').tasks.named('loaderJar').get().archiveFile
+            from project(':bootstrap').tasks.named('bootstrapJar').get().archiveFile
+            from project(':bootstrap').tasks.named('clientInstallerJar').get().archiveFile
+            into distDir
+        }
+        logger.lifecycle "pyTrial artifacts written to ${distDir}"
+    }
+}

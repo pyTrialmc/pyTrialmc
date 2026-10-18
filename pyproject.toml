@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pyTrialmc"
+dynamic = ["version"]
+description = "Write Minecraft Java Edition mods in Python"
+readme = "README.md"
+requires-python = ">=3.9"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+keywords = ["minecraft", "mod", "modloader", "python"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Topic :: Games/Entertainment",
+]
+
+[project.scripts]
+pytrialmc = "pyTrialmc.cli:main"
+
+[tool.setuptools]
+packages = ["pyTrialmc"]
+
+[tool.setuptools.dynamic]
+version = {attr = "pyTrialmc.__version__"}

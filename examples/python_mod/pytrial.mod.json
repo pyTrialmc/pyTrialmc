@@ -1,0 +1,7 @@
+{
+  "id": "pymod",
+  "name": "Python Example Mod",
+  "version": "1.0.0",
+  "entry": "main.py",
+  "hooks": []
+}

@@ -1,0 +1,51 @@
+dependencies {
+
+    api "org.ow2.asm:asm-tree:${asm_version}"
+
+    api "com.google.code.gson:gson:${gson_version}"
+
+    compileOnly "com.mojang:brigadier:${brigadier_version}"
+}
+
+tasks.named('processResources') {
+    from(rootProject.file('pyTrialmc')) {
+        into 'python/pyTrialmc'
+        exclude '__pycache__/**'
+        exclude '**/*.pyc'
+    }
+}
+
+tasks.register('loaderJar', Jar) {
+    group = 'build'
+    description = 'Package the pyTrial loader (ASM/Gson bundled, javaagent manifest)'
+    archiveBaseName = 'pytrial-loader'
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+
+    manifest {
+        attributes(
+                'Premain-Class': 'net.pytrial.agent.PyTrialAgent',
+                'Agent-Class': 'net.pytrial.agent.PyTrialAgent',
+                'Launcher-Agent-Class': 'net.pytrial.agent.PyTrialAgent',
+                'Can-Retransform-Classes': 'true',
+                'Can-Redefine-Classes': 'true',
+                'Main-Class': 'net.pytrial.PyTrialKernel',
+                'Implementation-Title': 'pyTrial Loader',
+                'Implementation-Version': project.version
+        )
+    }
+
+    from sourceSets.main.output
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    } {
+        exclude 'META-INF/MANIFEST.MF'
+        exclude 'META-INF/*.SF'
+        exclude 'META-INF/*.DSA'
+        exclude 'META-INF/*.RSA'
+        exclude 'module-info.class'
+    }
+}
+
+tasks.named('assemble') {
+    dependsOn 'loaderJar'
+}
