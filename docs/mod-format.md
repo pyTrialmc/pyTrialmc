@@ -134,4 +134,9 @@ def on_ruby_tick(payload):
     log("tick")
 ```
 
-任何一条路径失败都只打印一行日志，不会中断 mod 加载。
+两个例外：`function` 写的是纯文本 `<path>.mcfunction`（用 `content=` 传脚本正文），
+`structure` 写的是压缩 NBT `<path>.nbt`（用 `nbt=` 传 .nbt 文件的 base64）。
+`item_extension` 是派生一个新物品并挂上新组件，原物品不受影响。
+
+任何一条路径失败都只打印一行日志，不会中断 mod 加载。`examples/python_mod/main.py`
+把 37 种元素各声明了一次，可以直接当参考手册。

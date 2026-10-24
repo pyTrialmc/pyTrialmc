@@ -409,7 +409,8 @@ public final class RegistryBridge {
     /** Escape hatch: any registry, any class, chosen by the mod. */
     private Object customElement(String namespace, String path, JsonObject payload) throws Throwable {
         String registry = payload.has("registry") ? payload.get("registry").getAsString() : null;
-        String className = payload.has("class") ? payload.get("class").getAsString() : null;
+        String className = payload.has("class") ? payload.get("class").getAsString()
+                : payload.has("class_name") ? payload.get("class_name").getAsString() : null;
         if (registry == null || className == null) {
             PyTrialLog.warn("custom_element " + namespace + ":" + path
                     + " needs both 'registry' and 'class', ignored");

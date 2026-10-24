@@ -303,7 +303,9 @@ public final class SubprocessPythonEngine implements PythonEngine {
      * Kinds outside the block/item/tab trio: data driven content becomes a data pack file, single
      * registry objects go through the registry bridge, and anything else reports why.
      */
-    private static void routeExtra(String kind, JsonObject json) {
+    private static void routeExtra(String rawKind, JsonObject json) {
+        // register_entity is the historical helper name for living_entity
+        String kind = "entity".equals(rawKind) ? "living_entity" : rawKind;
         String namespace = text(json, "namespace");
         String path = text(json, "path");
         if (namespace == null || path == null) {

@@ -98,6 +98,12 @@ public final class DataPackWriter {
     }
 
     private static boolean writeEntry(Path root, ContentRegistry.DataEntry entry) {
+        if ("function".equals(entry.kind())) {
+            return writeText(root, entry, "content", ".mcfunction");
+        }
+        if ("structure".equals(entry.kind())) {
+            return writeBinary(root, entry);
+        }
         String folder = folder(entry.kind());
         if (folder == null && "tag".equals(entry.kind())) {
             String registry = entry.registry();
@@ -121,6 +127,46 @@ public final class DataPackWriter {
             return true;
         } catch (Throwable t) {
             PyTrialLog.warn("Cannot write " + entry.kind() + " " + entry.id() + ": " + t.getMessage());
+            return false;
+        }
+    }
+
+    /** Functions are plain text, not JSON. */
+    private static boolean writeText(Path root, ContentRegistry.DataEntry entry, String field,
+                                     String suffix) {
+        String body = entry.payload().has(field) ? entry.payload().get(field).getAsString() : null;
+        if (body == null) {
+            PyTrialLog.warn(entry.kind() + " " + entry.id() + " has no '" + field + "', ignored");
+            return false;
+        }
+        try {
+            Path dir = root.resolve("data").resolve(entry.namespace()).resolve("function");
+            Files.createDirectories(dir);
+            Files.writeString(dir.resolve(entry.path() + suffix), body.endsWith("\n") ? body : body + "\n",
+                    StandardCharsets.UTF_8);
+            return true;
+        } catch (Throwable t) {
+            PyTrialLog.warn("Cannot write " + entry.id() + ": " + t.getMessage());
+            return false;
+        }
+    }
+
+    /** Structures are compressed NBT: the declaration carries the bytes, base64 encoded. */
+    private static boolean writeBinary(Path root, ContentRegistry.DataEntry entry) {
+        String encoded = entry.payload().has("nbt") ? entry.payload().get("nbt").getAsString() : null;
+        if (encoded == null || encoded.isBlank()) {
+            PyTrialLog.warn("structure " + entry.id() + " has no 'nbt' payload (base64 of the .nbt file), "
+                    + "ignored");
+            return false;
+        }
+        try {
+            byte[] bytes = java.util.Base64.getDecoder().decode(encoded.replaceAll("\\s", ""));
+            Path dir = root.resolve("data").resolve(entry.namespace()).resolve("structure");
+            Files.createDirectories(dir);
+            Files.write(dir.resolve(entry.path() + ".nbt"), bytes);
+            return true;
+        } catch (Throwable t) {
+            PyTrialLog.warn("Cannot write structure " + entry.id() + ": " + t.getMessage());
             return false;
         }
     }

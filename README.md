@@ -72,7 +72,7 @@ Every kind is bridged, in one of four ways:
 
 | Bridge | Kinds | What happens |
 | --- | --- | --- |
-| data pack | advancement, armor_trim, banner_pattern, biome, damage_type, dimension, enchantment, feature, function, loot_table, painting, recipe, structure, villager_profession, villager_trade | the loader writes `data/<ns>/<folder>/<path>.json` into a generated data pack, so the element is a real recipe, loot table, advancement or worldgen entry |
+| data pack | advancement, armor_trim, banner_pattern, biome, damage_type, dimension, enchantment, feature, function, loot_table, painting, recipe, structure, villager_profession, villager_trade | the loader writes `data/<ns>/<folder>/<path>.json` into a generated data pack (`function` is `.mcfunction`, `structure` is `.nbt`), so the element is a real recipe, loot table, advancement or worldgen entry |
 | registry | armor, attribute, block, command, creative_tab, custom_element, fluid, game_rule, item, item_extension, key_binding, living_entity, particle, plant, potion_effect, potion_item, projectile, special_entity, tool | the loader registers a real object in the vanilla registry |
 | python | procedure | the declared name is bound to a module function and attached to the event bus |
 | screen | gui | a screen class is generated at runtime, draws the declared slots and buttons, and reports clicks back as `gui_click` |
