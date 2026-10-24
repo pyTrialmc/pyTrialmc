@@ -85,13 +85,65 @@ ELEMENT_LABELS = {
     "villager_trade": "Villager trade",
 }
 
-ACTIVE_KINDS = (
-    "block",
-    "item",
-    "creative_tab",
-    "command",
+# ---------------------------------------------------------------------------
+# 每种元素由谁桥接进游戏
+#
+#   data     —— 生成为一个数据包文件（data/<ns>/<folder>/<path>.json）
+#   registry —— 反射注册进原版注册表（BuiltInRegistries）
+#   pending  —— 需要 Java 侧生成类或客户端钩子，尚未接通
+# ---------------------------------------------------------------------------
+
+DATA_KINDS = (
+    "advancement",
+    "armor_trim",
+    "banner_pattern",
+    "biome",
+    "damage_type",
+    "dimension",
+    "enchantment",
+    "feature",
+    "function",
+    "loot_table",
+    "painting",
+    "recipe",
+    "structure",
+    "villager_profession",
+    "villager_trade",
 )
 
+REGISTRY_KINDS = (
+    "armor",
+    "attribute",
+    "block",
+    "command",
+    "creative_tab",
+    "custom_element",
+    "game_rule",
+    "item",
+    "item_extension",
+    "living_entity",
+    "particle",
+    "plant",
+    "potion_effect",
+    "potion_item",
+    "projectile",
+    "special_entity",
+    "tool",
+)
+
+#: 纯 Python 侧的概念，不经过 Java 桥接
+PYTHON_KINDS = ("procedure",)
+
+PENDING_KINDS = {
+    "fluid": "需要一个 Fluid 子类，等 Java 侧生成类之后接通",
+    "gui": "客户端界面，等 Screen 桥接",
+    "key_binding": "客户端按键绑定，等输入桥接",
+    "overlay": "客户端叠加层，等渲染钩子",
+}
+
+ACTIVE_KINDS = DATA_KINDS + REGISTRY_KINDS + PYTHON_KINDS
+
+#: 直接可用的 ``runtime.register_<kind>`` 函数名，供 source.py 派发
 SUPPORTED_FUNCTIONS = {
     "advancement": "register_advancement",
     "biome": "register_biome",
@@ -133,3 +185,22 @@ def options_for(kind, options):
         if key in rest:
             reserved[key] = rest.pop(key)
     return reserved, rest
+
+
+def bridge(kind):
+    """How a kind reaches the game: ``data``, ``registry``, ``python``, ``pending`` or ``None``."""
+    kind = str(kind)
+    if kind in DATA_KINDS:
+        return "data"
+    if kind in REGISTRY_KINDS:
+        return "registry"
+    if kind in PYTHON_KINDS:
+        return "python"
+    if kind in PENDING_KINDS:
+        return "pending"
+    return None
+
+
+def pending_reason(kind):
+    """Why a kind is not bridged yet, or ``None`` when it is."""
+    return PENDING_KINDS.get(str(kind))

@@ -24,11 +24,16 @@ from .runtime import (
     register_menu,
     register_particle,
     register_potion_effect,
+    register_procedure,
     register_recipe,
     register_sound,
     warn,
 )
+from . import runtime as _runtime
 from .source import Element, ModSource, declared_elements, modmain, modsrc
+
+# 自动生成的 register_<kind> 函数，逐个导出
+globals().update({_name: getattr(_runtime, _name) for _name in _runtime.KIND_HELPERS})
 
 __version__ = "2026.10.7"
 
@@ -59,6 +64,7 @@ __all__ = [
     "register_feature",
     "register_enchantment",
     "register_potion_effect",
+    "register_procedure",
     "register_gui",
     "open_gui",
     "close_gui",
@@ -70,4 +76,5 @@ __all__ = [
     "ELEMENT_KINDS",
     "ELEMENT_LABELS",
     "ACTIVE_KINDS",
+    *sorted(_runtime.KIND_HELPERS),
 ]

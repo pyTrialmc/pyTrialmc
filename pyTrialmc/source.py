@@ -140,6 +140,10 @@ class ModSource:
         else:
             options["texture"] = texture
 
+    def _bind_procedure(self, element):
+        """A procedure is a module function bound to an event id: ``mod.add.procedure("on_break")``."""
+        runtime.register_procedure(element.namespace, element.name, **element.options)
+
     def _send(self, element):
         self._resolve_texture(element.options)
         reserved, options = elements.options_for(element.kind, element.options)
@@ -150,6 +154,10 @@ class ModSource:
                 reserved.get("aliases"),
                 **options
             )
+            return
+
+        if element.kind == "procedure":
+            self._bind_procedure(element)
             return
 
         function_name = elements.SUPPORTED_FUNCTIONS.get(element.kind)

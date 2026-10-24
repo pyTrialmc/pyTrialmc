@@ -11,6 +11,8 @@ import net.pytrial.engine.PythonEngineException;
 import net.pytrial.engine.PythonRuntime;
 import net.pytrial.game.CommandBridge;
 import net.pytrial.game.ContentRegistry;
+import net.pytrial.game.DataPackWriter;
+import net.pytrial.game.RegistryBridge;
 import net.pytrial.util.Json;
 import net.pytrial.util.PyTrialLog;
 
@@ -37,6 +39,7 @@ public final class SubprocessPythonEngine implements PythonEngine {
 
     private static String resolvedPython;
     private static boolean pythonSearched;
+    private static RegistryBridge registryBridge;
 
     private final Map<String, CompletableFuture<Boolean>> pendingLoads = new ConcurrentHashMap<>();
 
@@ -210,7 +213,16 @@ public final class SubprocessPythonEngine implements PythonEngine {
                         complete(text(json, "id"), false);
                     }
                 }
-                default -> PyTrialLog.debug("Unhandled Python event: " + event);
+                default -> {
+                    if (event.startsWith("register_")) {
+                        // register_<kind> helpers send their own event name; normalise and route them
+                        String kind = event.substring("register_".length());
+                        json.addProperty("kind", kind);
+                        routeExtra(kind, json);
+                    } else {
+                        PyTrialLog.debug("Unhandled Python event: " + event);
+                    }
+                }
             }
         } catch (Throwable t) {
             PyTrialLog.warn("Cannot parse Python output: " + line);
@@ -282,8 +294,64 @@ public final class SubprocessPythonEngine implements PythonEngine {
                         text(json, "title"), text(json, "icon"), stringList(json, "items"),
                         text(json, "row"));
             }
-            default -> PyTrialLog.warn("[python] registration of '" + kind + "' is not supported yet, ignored");
+            default -> routeExtra(kind, json);
         }
+    }
+
+    /**
+     * Kinds outside the block/item/tab trio: data driven content becomes a data pack file, single
+     * registry objects go through the registry bridge, and anything else reports why.
+     */
+    private static void routeExtra(String kind, JsonObject json) {
+        String namespace = text(json, "namespace");
+        String path = text(json, "path");
+        if (namespace == null || path == null) {
+            PyTrialLog.warn("[python] " + kind + " registration without a namespace/path, ignored");
+            return;
+        }
+        if (ContentRegistry.isApplied()) {
+            PyTrialLog.warn("[python] " + kind + " " + namespace + ":" + path
+                    + " arrived after the registry was frozen, ignored (declare it in on_declare)");
+            return;
+        }
+        if (DataPackWriter.handles(kind)) {
+            ContentRegistry.addData(kind, namespace, path, text(json, "registry"), payloadOf(json));
+            return;
+        }
+        RegistryBridge bridge = registryBridge();
+        if (bridge != null && bridge.handles(kind)) {
+            Object registered = bridge.register(kind, namespace, path, json);
+            if (registered != null) {
+                PyTrialLog.info("Registered " + kind + " " + namespace + ":" + path);
+            }
+            return;
+        }
+        PyTrialLog.warn("[python] registration of '" + kind + "' is not supported yet, ignored");
+    }
+
+    /** The declaration without the transport fields, which is the body of the generated JSON file. */
+    private static JsonObject payloadOf(JsonObject json) {
+        JsonObject payload = new JsonObject();
+        json.entrySet().forEach(entry -> {
+            switch (entry.getKey()) {
+                case "event", "kind", "namespace", "path", "registry", "id" -> {
+                    // transport only
+                }
+                default -> payload.add(entry.getKey(), entry.getValue());
+            }
+        });
+        return payload;
+    }
+
+    private static synchronized RegistryBridge registryBridge() {
+        if (registryBridge == null) {
+            ClassLoader loader = Thread.currentThread().getContextClassLoader();
+            if (loader == null) {
+                loader = SubprocessPythonEngine.class.getClassLoader();
+            }
+            registryBridge = new RegistryBridge(loader);
+        }
+        return registryBridge;
     }
 
     private static List<String> stringList(JsonObject json, String key) {

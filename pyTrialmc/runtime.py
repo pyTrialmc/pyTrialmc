@@ -165,6 +165,24 @@ def off(event, handler):
         handlers.remove(handler)
 
 
+def register_procedure(namespace, path, event=None, **options):
+    """Bind a module function to the event bus.
+
+    ``register_procedure("mymod", "on_tick", event="tick")`` attaches the module level function
+    ``on_tick`` to the ``tick`` event. Without ``event`` the function name is the event id.
+    """
+    name = str(path)
+    module = current_module()
+    handler = getattr(module, name, None) if module is not None else None
+    if not callable(handler):
+        warn("procedure " + name + " 没有同名函数，已跳过")
+        return None
+    event_id = event or name
+    on(event_id, handler)
+    log("procedure " + name + " 绑定到事件 " + str(event_id))
+    return handler
+
+
 def _dispatch(event_id, payload):
     for handler in list(_handlers.get(str(event_id), [])):
         try:
@@ -293,3 +311,54 @@ def bootstrap(library_path):
         sys.path.insert(0, library_path)
     bind(lambda payload: sys.stdout.write(json.dumps(payload, ensure_ascii=False) + "\n") or sys.stdout.flush())
     serve()
+
+
+# ---------------------------------------------------------------------------
+# 其余元素类型的注册函数
+#
+# 这些函数和上面的手写版本做同一件事：把一次声明发成一条 register_<kind> 消息。
+# 内容本身的字段原样透传，所以 mod 想写什么原版字段就写什么。
+# ---------------------------------------------------------------------------
+
+_GENERATED_HELPERS = (
+    "armor",
+    "armor_trim",
+    "attribute",
+    "banner_pattern",
+    "custom_element",
+    "damage_type",
+    "function",
+    "game_rule",
+    "item_extension",
+    "item_modifier",
+    "painting",
+    "plant",
+    "potion_item",
+    "projectile",
+    "special_entity",
+    "structure",
+    "tag",
+    "tool",
+    "villager_profession",
+    "villager_trade",
+)
+
+
+def _make_helper(kind):
+    def helper(namespace, path, **options):
+        message = {"event": "register_" + kind, "namespace": str(namespace), "path": str(path)}
+        message.update(options)
+        _send(message)
+
+    helper.__name__ = "register_" + kind
+    helper.__qualname__ = "register_" + kind
+    helper.__doc__ = "Register one " + kind + " element: " + kind + "(namespace, path, **options)."
+    return helper
+
+
+KIND_HELPERS = tuple("register_" + kind for kind in _GENERATED_HELPERS)
+
+for _kind in _GENERATED_HELPERS:
+    globals()["register_" + _kind] = _make_helper(_kind)
+
+del _kind

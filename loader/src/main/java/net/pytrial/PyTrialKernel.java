@@ -11,6 +11,7 @@ import net.pytrial.event.EventBus;
 import net.pytrial.event.Events;
 import net.pytrial.game.CommandBridge;
 import net.pytrial.game.ContentRegistry;
+import net.pytrial.game.DataPackWriter;
 import net.pytrial.game.ModResourcePack;
 import net.pytrial.game.GameBridge;
 import net.pytrial.lifecycle.LoaderPhase;
@@ -407,6 +408,7 @@ public final class PyTrialKernel implements HookSink {
                 new GameBridge(PyTrialKernel.class.getClassLoader()));
         PyTrialLog.info("Content registration done: " + blocks.size() + " block(s)");
         ModResourcePack.install(environment.installDir().getParent(), blocks);
+        DataPackWriter.install(environment.installDir().getParent(), ContentRegistry.drainData());
 
         java.util.List<PyTrialSettings.ModEntry> entries = new java.util.ArrayList<>();
         for (ModContainer container : registry.mods()) {

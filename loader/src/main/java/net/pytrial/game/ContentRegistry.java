@@ -1,5 +1,6 @@
 package net.pytrial.game;
 
+import com.google.gson.JsonObject;
 import net.pytrial.util.PyTrialLog;
 
 import java.util.ArrayList;
@@ -33,9 +34,18 @@ public final class ContentRegistry {
                               String row) {
     }
 
+    /** An element bridged by a generated data pack file instead of the registry. */
+    public record DataEntry(String kind, String namespace, String path, String registry, JsonObject payload) {
+
+        public String id() {
+            return namespace + ":" + path;
+        }
+    }
+
     private static final List<String[]> PENDING_BLOCKS = new ArrayList<>();
     private static final List<String[]> PENDING_ITEMS = new ArrayList<>();
     private static final List<PendingTab> PENDING_TABS = new ArrayList<>();
+    private static final List<DataEntry> PENDING_DATA = new ArrayList<>();
     private static final List<BlockEntry> REGISTERED_BLOCKS = new ArrayList<>();
     private static final List<ItemEntry> REGISTERED_ITEMS = new ArrayList<>();
     private static final List<TabEntry> REGISTERED_TABS = new ArrayList<>();
@@ -62,8 +72,17 @@ public final class ContentRegistry {
         PENDING_TABS.add(new PendingTab(namespace, path, title, icon, List.copyOf(items), row));
     }
 
+    /**
+     * Queue a data pack element. The payload is the JSON body of the file, written verbatim, so a mod
+     * can ship any field the game understands without the loader having to model it.
+     */
+    public static synchronized void addData(String kind, String namespace, String path, String registry,
+                                            JsonObject payload) {
+        PENDING_DATA.add(new DataEntry(kind, namespace, path, registry, payload));
+    }
+
     public static synchronized int pendingCount() {
-        return PENDING_BLOCKS.size() + PENDING_ITEMS.size() + PENDING_TABS.size();
+        return PENDING_BLOCKS.size() + PENDING_ITEMS.size() + PENDING_TABS.size() + PENDING_DATA.size();
     }
 
     public static synchronized List<BlockEntry> apply(GameBridge bridge) {
@@ -115,11 +134,19 @@ public final class ContentRegistry {
         return List.copyOf(REGISTERED_TABS);
     }
 
+    /** Data pack elements queued by the mods, drained by {@link DataPackWriter}. */
+    public static synchronized List<DataEntry> drainData() {
+        List<DataEntry> drained = List.copyOf(PENDING_DATA);
+        PENDING_DATA.clear();
+        return drained;
+    }
+
     public static synchronized void clear() {
         applied = false;
         PENDING_BLOCKS.clear();
         PENDING_ITEMS.clear();
         PENDING_TABS.clear();
+        PENDING_DATA.clear();
         REGISTERED_BLOCKS.clear();
         REGISTERED_ITEMS.clear();
         REGISTERED_TABS.clear();

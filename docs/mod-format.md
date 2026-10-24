@@ -93,3 +93,44 @@ def on_event(event_id, payload): ...     # 收到加载器事件
 | `ctx.log/warn/error(msg)` | 日志 |
 
 > 引擎尚未接入时，这些函数不会被调用 —— 见 [python-engine.md](python-engine.md)。
+
+## 元素落地到哪里
+
+一次 `mod.add.<kind>(name, **options)` 最终会走到下面四条路径之一，`options` 全程原样透传。
+
+| 路径 | 元素 | 产物 |
+| --- | --- | --- |
+| 数据包 | advancement / armor_trim / banner_pattern / biome / damage_type / dimension / enchantment / feature / function / loot_table / painting / recipe / structure / villager_profession / villager_trade | `<gameDir>/pytrial/datapacks/pytrial_generated/data/<ns>/<folder>/<name>.json` |
+| 注册表 | armor / attribute / block / command / creative_tab / custom_element / game_rule / item / item_extension / living_entity / particle / plant / potion_effect / potion_item / projectile / special_entity / tool | 直接进 `BuiltInRegistries` |
+| Python | procedure | 同名函数挂到事件总线 |
+| 未接通 | fluid / gui / key_binding / overlay | 需要 Java 侧生成类或客户端钩子，加载时打印具体原因 |
+
+数据包里的目录名：`advancement`、`recipe`、`loot_table`、`function`、`structure`、`worldgen/biome`、`worldgen/configured_feature`、`dimension`、`dimension_type`、`enchantment`、`damage_type`、`banner_pattern`、`trim_pattern`、`trim_material`、`painting_variant`、`villager_trade`、`item_modifier`、`predicate`、`tags/<registry>`。
+
+生成的数据包会写进 `<gameDir>/pytrial/datapacks/pytrial_generated`，并复制到每个已存在的存档的 `datapacks/` 下 —— 数据包是按存档加载的。
+
+```python
+# 声明即文件，字段就是原版 JSON
+register_recipe("mymod", "ruby_block_from_ingot",
+                type="minecraft:crafting_shapeless",
+                ingredients=[{"item": "mymod:ruby_ingot"}],
+                result={"id": "mymod:ruby_block", "count": 1})
+```
+
+```python
+# 注册表类走反射，构造参数由 options 决定
+register_tool("mymod", "ruby_pickaxe", durability=880,
+              components={"max_stack_size": 1})
+register_particle("mymod", "ruby_spark")
+register_attribute("mymod", "ruby_luck", default=0.0, min=0.0, max=10.0)
+```
+
+```python
+# procedure 绑定本文件里的同名函数
+register_procedure("mymod", "on_ruby_tick", event="tick")
+
+def on_ruby_tick(payload):
+    log("tick")
+```
+
+任何一条路径失败都只打印一行日志，不会中断 mod 加载。

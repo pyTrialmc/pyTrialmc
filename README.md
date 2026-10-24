@@ -68,10 +68,18 @@ The catalog covers 37 kinds:
 | | advancement, armor, armor_trim, attribute, banner_pattern, biome, block, command, creative_tab, custom_element, damage_type, dimension, enchantment, feature, fluid, function, gui, game_rule |
 | | item, item_extension, key_binding, living_entity, loot_table, overlay, painting, particle, plant, potion_effect, potion_item, procedure, projectile, recipe, special_entity, structure, tool, villager_profession, villager_trade |
 
-`block`, `item`, `creative_tab` and `command` are active: the loader bridges them
-into the game today. Every other kind is declared and reported by the loader as
-not supported yet, so declaring one never fails; the Python side stays unchanged
-when its bridge lands.
+Every kind is bridged, in one of four ways:
+
+| Bridge | Kinds | What happens |
+| --- | --- | --- |
+| data pack | advancement, armor_trim, banner_pattern, biome, damage_type, dimension, enchantment, feature, function, loot_table, painting, recipe, structure, villager_profession, villager_trade | the loader writes `data/<ns>/<folder>/<path>.json` into a generated data pack, so the element is a real recipe, loot table, advancement or worldgen entry |
+| registry | armor, attribute, block, command, creative_tab, custom_element, game_rule, item, item_extension, living_entity, particle, plant, potion_effect, potion_item, projectile, special_entity, tool | the loader registers a real object in the vanilla registry |
+| python | procedure | the declared name is bound to a module function and attached to the event bus |
+| pending | fluid, gui, key_binding, overlay | needs a generated Java class or a client hook; the loader logs the exact reason instead of failing |
+
+Options are passed through untouched: `mod.add.recipe(...)` fields become the
+recipe JSON, `mod.add.tool(...)` components become item data components. A kind
+that cannot be bridged never fails the load — it logs one line and continues.
 
 ### Element files
 
