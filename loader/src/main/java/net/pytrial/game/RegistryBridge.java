@@ -74,6 +74,8 @@ public final class RegistryBridge {
                 case "special_entity" -> entity(namespace, path, payload,
                         "net.minecraft.world.entity.decoration.ArmorStand", "MISC");
                 case "custom_element" -> customElement(namespace, path, payload);
+                case "fluid" -> fluid(namespace, path, payload);
+                case "key_binding" -> keyBinding(namespace, path, payload);
                 default -> null;
             };
         } catch (Throwable t) {
@@ -87,7 +89,7 @@ public final class RegistryBridge {
         return switch (kind) {
             case "particle", "attribute", "potion_effect", "game_rule", "tool", "armor", "potion_item",
                  "plant", "item_extension", "living_entity", "projectile", "special_entity",
-                 "custom_element" -> true;
+                 "custom_element", "fluid", "key_binding" -> true;
             default -> false;
         };
     }
@@ -347,6 +349,61 @@ public final class RegistryBridge {
         }
         registerMethod.invoke(null, builtInField("ENTITY_TYPE"), id, type);
         return type;
+    }
+
+    /**
+     * A fluid pair. Vanilla has no FluidType to configure, so the bridge registers a source and a
+     * flowing instance; {@code WaterFluid} supplies both with a public constructor, which gives a
+     * working fluid under the mod namespace. A mod that ships its own classes passes
+     * {@code sourceClass} / {@code flowingClass}.
+     */
+    private Object fluid(String namespace, String path, JsonObject payload) throws Throwable {
+        String sourceName = payload.has("sourceClass") ? payload.get("sourceClass").getAsString()
+                : "net.minecraft.world.level.material.WaterFluid$Source";
+        String flowingName = payload.has("flowingClass") ? payload.get("flowingClass").getAsString()
+                : "net.minecraft.world.level.material.WaterFluid$Flowing";
+
+        Object source = instantiate(sourceName);
+        Object flowing = instantiate(flowingName);
+        put("FLUID", namespace, path, source);
+        put("FLUID", namespace, path + "_flowing", flowing);
+        return source;
+    }
+
+    private Object instantiate(String className) throws Throwable {
+        Class<?> type = Class.forName(className, true, loader);
+        Constructor<?> constructor = type.getDeclaredConstructor();
+        constructor.setAccessible(true);
+        return constructor.newInstance();
+    }
+
+    /**
+     * A client key binding. The {@code KeyMapping} constructor registers itself into the static
+     * lookup the controls screen and the input loop both read, so creating it is the whole job.
+     */
+    private Object keyBinding(String namespace, String path, JsonObject payload) throws Throwable {
+        Class<?> mappingClass = Class.forName("net.minecraft.client.KeyMapping", true, loader);
+        Class<?> categoryClass = Class.forName("net.minecraft.client.KeyMapping$Category", true, loader);
+
+        String categoryId = payload.has("category") ? payload.get("category").getAsString() : namespace;
+        Object category = null;
+        for (Method method : categoryClass.getDeclaredMethods()) {
+            if (method.getName().equals("register") && Modifier.isStatic(method.getModifiers())
+                    && method.getParameterCount() == 1 && method.getParameterTypes()[0] == String.class) {
+                method.setAccessible(true);
+                category = method.invoke(null, categoryId);
+                break;
+            }
+        }
+        if (category == null) {
+            throw new IllegalStateException("KeyMapping.Category.register not found");
+        }
+
+        int keyCode = (int) number(payload, "key", 0);
+        Constructor<?> constructor = mappingClass.getDeclaredConstructor(String.class, int.class,
+                categoryClass);
+        constructor.setAccessible(true);
+        return constructor.newInstance("key." + namespace + "." + path, keyCode, category);
     }
 
     /** Escape hatch: any registry, any class, chosen by the mod. */

@@ -118,9 +118,11 @@ REGISTRY_KINDS = (
     "command",
     "creative_tab",
     "custom_element",
+    "fluid",
     "game_rule",
     "item",
     "item_extension",
+    "key_binding",
     "living_entity",
     "particle",
     "plant",
@@ -134,14 +136,14 @@ REGISTRY_KINDS = (
 #: 纯 Python 侧的概念，不经过 Java 桥接
 PYTHON_KINDS = ("procedure",)
 
+#: 由加载器直接实现的界面类元素
+UI_KINDS = ("gui",)
+
 PENDING_KINDS = {
-    "fluid": "需要一个 Fluid 子类，等 Java 侧生成类之后接通",
-    "gui": "客户端界面，等 Screen 桥接",
-    "key_binding": "客户端按键绑定，等输入桥接",
-    "overlay": "客户端叠加层，等渲染钩子",
+    "overlay": "26.3 的 HUD 改走 GuiRenderState 管线，Overlay 基类不再带渲染方法，需要新的渲染钩子",
 }
 
-ACTIVE_KINDS = DATA_KINDS + REGISTRY_KINDS + PYTHON_KINDS
+ACTIVE_KINDS = DATA_KINDS + REGISTRY_KINDS + PYTHON_KINDS + UI_KINDS
 
 #: 直接可用的 ``runtime.register_<kind>`` 函数名，供 source.py 派发
 SUPPORTED_FUNCTIONS = {
@@ -188,7 +190,7 @@ def options_for(kind, options):
 
 
 def bridge(kind):
-    """How a kind reaches the game: ``data``, ``registry``, ``python``, ``pending`` or ``None``."""
+    """How a kind reaches the game: ``data``, ``registry``, ``python``, ``ui``, ``pending`` or ``None``."""
     kind = str(kind)
     if kind in DATA_KINDS:
         return "data"
@@ -196,6 +198,8 @@ def bridge(kind):
         return "registry"
     if kind in PYTHON_KINDS:
         return "python"
+    if kind in UI_KINDS:
+        return "ui"
     if kind in PENDING_KINDS:
         return "pending"
     return None

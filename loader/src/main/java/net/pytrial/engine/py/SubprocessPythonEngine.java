@@ -13,6 +13,7 @@ import net.pytrial.game.CommandBridge;
 import net.pytrial.game.ContentRegistry;
 import net.pytrial.game.DataPackWriter;
 import net.pytrial.game.RegistryBridge;
+import net.pytrial.ui.ModGuiScreen;
 import net.pytrial.util.Json;
 import net.pytrial.util.PyTrialLog;
 
@@ -202,10 +203,10 @@ public final class SubprocessPythonEngine implements PythonEngine {
                     PyTrialLog.info("[python] command requested: /" + text(json, "name"));
                 }
                 case "register" -> registerContent(json);
-                case "register_gui" -> PyTrialLog.warn("[python] gui registration is not available at this "
-                        + "stage, ignored: " + text(json, "id"));
-                case "open_gui", "close_gui" -> PyTrialLog.warn("[python] gui request is not available at this "
-                        + "stage, ignored");
+                case "register_gui" -> ModGuiScreen.declare(text(json, "id"), text(json, "title"),
+                        guiList(json, "slots"), guiList(json, "buttons"));
+                case "open_gui" -> ModGuiScreen.open(text(json, "id"));
+                case "close_gui" -> ModGuiScreen.close();
                 case "declared", "loaded" -> complete(text(json, "id"), true);
                 case "error" -> {
                     PyTrialLog.error("[python] " + text(json, "message"));
@@ -326,7 +327,16 @@ public final class SubprocessPythonEngine implements PythonEngine {
             }
             return;
         }
-        PyTrialLog.warn("[python] registration of '" + kind + "' is not supported yet, ignored");
+        String reason = switch (kind) {
+            case "overlay" -> "the 26.3 HUD renders through GuiRenderState, a renderer hook is still missing";
+            default -> null;
+        };
+        if (reason != null) {
+            PyTrialLog.warn("[python] " + kind + " " + namespace + ":" + path + " cannot be bridged: "
+                    + reason);
+        } else {
+            PyTrialLog.warn("[python] registration of '" + kind + "' is not supported yet, ignored");
+        }
     }
 
     /** The declaration without the transport fields, which is the body of the generated JSON file. */
@@ -352,6 +362,35 @@ public final class SubprocessPythonEngine implements PythonEngine {
             registryBridge = new RegistryBridge(loader);
         }
         return registryBridge;
+    }
+
+    /**
+     * A list of slot / button entries. A slot may be a plain id or an object with an {@code item}
+     * field, a button may be a label or an object with a {@code label}.
+     */
+    private static List<String> guiList(JsonObject json, String key) {
+        if (!json.has(key) || !json.get(key).isJsonArray()) {
+            return List.of();
+        }
+        List<String> values = new ArrayList<>();
+        json.getAsJsonArray(key).forEach(element -> {
+            if (element.isJsonNull()) {
+                return;
+            }
+            if (element.isJsonObject()) {
+                JsonObject object = element.getAsJsonObject();
+                for (String field : new String[]{"item", "label", "id", "text"}) {
+                    if (object.has(field) && !object.get(field).isJsonNull()) {
+                        values.add(object.get(field).getAsString());
+                        return;
+                    }
+                }
+                values.add(object.toString());
+                return;
+            }
+            values.add(element.getAsString());
+        });
+        return values;
     }
 
     private static List<String> stringList(JsonObject json, String key) {

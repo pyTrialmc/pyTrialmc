@@ -73,9 +73,10 @@ Every kind is bridged, in one of four ways:
 | Bridge | Kinds | What happens |
 | --- | --- | --- |
 | data pack | advancement, armor_trim, banner_pattern, biome, damage_type, dimension, enchantment, feature, function, loot_table, painting, recipe, structure, villager_profession, villager_trade | the loader writes `data/<ns>/<folder>/<path>.json` into a generated data pack, so the element is a real recipe, loot table, advancement or worldgen entry |
-| registry | armor, attribute, block, command, creative_tab, custom_element, game_rule, item, item_extension, living_entity, particle, plant, potion_effect, potion_item, projectile, special_entity, tool | the loader registers a real object in the vanilla registry |
+| registry | armor, attribute, block, command, creative_tab, custom_element, fluid, game_rule, item, item_extension, key_binding, living_entity, particle, plant, potion_effect, potion_item, projectile, special_entity, tool | the loader registers a real object in the vanilla registry |
 | python | procedure | the declared name is bound to a module function and attached to the event bus |
-| pending | fluid, gui, key_binding, overlay | needs a generated Java class or a client hook; the loader logs the exact reason instead of failing |
+| screen | gui | a screen class is generated at runtime, draws the declared slots and buttons, and reports clicks back as `gui_click` |
+| pending | overlay | Minecraft 26.3 renders the HUD through the GuiRenderState pipeline, so a HUD hook still needs a renderer patch; the loader logs the exact reason instead of failing |
 
 Options are passed through untouched: `mod.add.recipe(...)` fields become the
 recipe JSON, `mod.add.tool(...)` components become item data components. A kind

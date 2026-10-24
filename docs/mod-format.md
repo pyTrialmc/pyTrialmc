@@ -101,9 +101,10 @@ def on_event(event_id, payload): ...     # 收到加载器事件
 | 路径 | 元素 | 产物 |
 | --- | --- | --- |
 | 数据包 | advancement / armor_trim / banner_pattern / biome / damage_type / dimension / enchantment / feature / function / loot_table / painting / recipe / structure / villager_profession / villager_trade | `<gameDir>/pytrial/datapacks/pytrial_generated/data/<ns>/<folder>/<name>.json` |
-| 注册表 | armor / attribute / block / command / creative_tab / custom_element / game_rule / item / item_extension / living_entity / particle / plant / potion_effect / potion_item / projectile / special_entity / tool | 直接进 `BuiltInRegistries` |
+| 注册表 | armor / attribute / block / command / creative_tab / custom_element / fluid / game_rule / item / item_extension / key_binding / living_entity / particle / plant / potion_effect / potion_item / projectile / special_entity / tool | 直接进 `BuiltInRegistries`；fluid 注册 source + flowing 一对 |
 | Python | procedure | 同名函数挂到事件总线 |
-| 未接通 | fluid / gui / key_binding / overlay | 需要 Java 侧生成类或客户端钩子，加载时打印具体原因 |
+| 界面 | gui | 运行时生成 Screen，画声明的槽位和按钮，点击回调成 `gui_click` |
+| 未接通 | overlay | 26.3 的 HUD 走 GuiRenderState 管线，需要渲染钩子，加载时打印具体原因 |
 
 数据包里的目录名：`advancement`、`recipe`、`loot_table`、`function`、`structure`、`worldgen/biome`、`worldgen/configured_feature`、`dimension`、`dimension_type`、`enchantment`、`damage_type`、`banner_pattern`、`trim_pattern`、`trim_material`、`painting_variant`、`villager_trade`、`item_modifier`、`predicate`、`tags/<registry>`。
 

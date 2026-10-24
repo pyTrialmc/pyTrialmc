@@ -87,6 +87,12 @@ def on_declare(ctx):
     register_tag(MOD_ID, "lucky_blocks", registry="block",
                  values=[MOD_ID + ":lucky_block"])
 
+    register_fluid(MOD_ID, "lucky_water")
+    register_key_binding(MOD_ID, "open_panel", key=71, category="pymod")
+    register_gui("lucky_panel", title="Lucky Panel",
+                 slots=[MOD_ID + ":lucky_block", MOD_ID + ":lucky_ingot"],
+                 buttons=["Refresh", "Close"])
+
     # --- Python 类：名字对应本文件里的同名函数 ---
     register_procedure(MOD_ID, "on_lucky_tick", event="tick")
 
